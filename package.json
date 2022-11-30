@@ -1,0 +1,18 @@
+{
+  "name": "web-worker-lesson",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chrisuehlinger/web-worker-lesson.git"
+  },
+  "scripts": {
+    "start": "http-server -p 8000 -c-1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "http-server": "^14.1.1"
+  }
+}

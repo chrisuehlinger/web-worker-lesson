@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3 - Prime Numbers using a Web Worker in an async style</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+        }
+        #loading-spinner {
+            /* This list of fonts was a VS Code suggestion. It's just a bunch of good Sans Serif fonts that people usually have installed */
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-size: 72px;
+            font-weight: 700;
+            line-height: 1;
+            color: dodgerblue;
+            margin: 30px auto;
+        }
+
+        .loading-letter {
+            display: inline-block;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: scale(1) rotate(0deg);
+            }
+
+            30% {
+                transform: scale(0.5) rotate(180deg);
+            }
+
+            60%, 100% {
+                transform: scale(1) rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <p id="question">Find me the <input id="n" value="100000"/>th prime number. <button id="gobutton">GO!</button></p>
+        <p id="answer"></p>
+        <div id="loading-spinner" style="display:none">
+            <span class="loading-letter" style="animation-delay:0.0s">L</span>
+            <span class="loading-letter" style="animation-delay:0.1s">O</span>
+            <span class="loading-letter" style="animation-delay:0.2s">A</span>
+            <span class="loading-letter" style="animation-delay:0.3s">D</span>
+            <span class="loading-letter" style="animation-delay:0.4s">I</span>
+            <span class="loading-letter" style="animation-delay:0.5s">N</span>
+            <span class="loading-letter" style="animation-delay:0.6s">G</span>
+        </div>
+    </main>
+    <!-- This is just the JS code from the Stat.js bookmarklet, so we can see what our FPS is -->
+    <script>(function(){var script=document.createElement('script');script.onload=function(){var stats=new Stats();document.body.appendChild(stats.dom);requestAnimationFrame(function loop(){stats.update();requestAnimationFrame(loop)});};script.src='//mrdoob.github.io/stats.js/build/stats.min.js';document.head.appendChild(script);})()</script>
+    <script>
+        const gobutton = document.getElementById('gobutton');
+        const input = document.getElementById('n');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const answerElement = document.getElementById('answer');
+
+        let startTime;
+        gobutton.addEventListener('click', async () => {
+            let n = parseInt(input.value);
+            if (!isNaN(n)) {
+                // Show the loading spinner while we look for the prime number
+                loadingSpinner.style.display = 'block';
+
+                startTime = Date.now();
+                // Here we wait until we need the worker before we create it
+                const primeWorker = new Worker('prime-worker.js');
+                const nthPrime = await new Promise((resolve) => {
+                    primeWorker.onmessage = (event) => {
+                        resolve(event.data.prime);
+                    };
+                    primeWorker.postMessage({ n: n });
+                });
+                // Once we've got the value back from the worker, we terminate it.
+                primeWorker.terminate();
+                let endTime = Date.now();
+
+                answerElement.innerText = `The ${n.toLocaleString("en-US")}th prime number is ${nthPrime.toLocaleString("en-US")}.(Found in ${(endTime-startTime)/1000} seconds)`;
+
+                // Hide the loading spinner when we're done
+                loadingSpinner.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+
+</html>
