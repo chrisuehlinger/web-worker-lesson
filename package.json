@@ -8,11 +8,12 @@
     "url": "git+https://github.com/chrisuehlinger/web-worker-lesson.git"
   },
   "scripts": {
-    "start": "http-server -p 8000 -c-1"
+    "start": "set PORT=8000&& serve"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "http-server": "^14.1.1"
+    "http-server": "^14.1.1",
+    "serve": "^14.1.2"
   }
 }

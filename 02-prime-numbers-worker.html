@@ -71,13 +71,14 @@
             if (!isNaN(n)) {
                 // Show the loading spinner while we look for the prime number
                 loadingSpinner.style.display = 'block';
+                gobutton.setAttribute('disabled', 'disabled');
 
                 startTime = Date.now();
                 primeWorker.postMessage({ n: n });
             }
         });
 
-        primeWorker.onmessage = (event) => {
+        primeWorker.addEventListener('message', (event) => {
             const n = event.data.n;
             const nthPrime = event.data.prime;
             let endTime = Date.now();
@@ -86,7 +87,8 @@
 
             // Hide the loading spinner when we're done
             loadingSpinner.style.display = 'none';
-        };
+            gobutton.removeAttribute('disabled');
+        });
     </script>
 </body>
 

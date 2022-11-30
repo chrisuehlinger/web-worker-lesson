@@ -70,6 +70,7 @@
             if (!isNaN(n)) {
                 // Show the loading spinner while we look for the prime number
                 loadingSpinner.style.display = 'block';
+                gobutton.setAttribute('disabled', 'disabled');
 
                 startTime = Date.now();
                 // Here we wait until we need the worker before we create it
@@ -88,6 +89,7 @@
 
                 // Hide the loading spinner when we're done
                 loadingSpinner.style.display = 'none';
+                gobutton.removeAttribute('disabled');
             }
         });
     </script>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4 - Web Worker MergeSort</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+        }
+        #loading-spinner {
+            /* This list of fonts was a VS Code suggestion. It's just a bunch of good Sans Serif fonts that people usually have installed */
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-size: 72px;
+            font-weight: 700;
+            line-height: 1;
+            color: dodgerblue;
+            margin: 30px auto;
+        }
+
+        .loading-letter {
+            display: inline-block;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: scale(1) rotate(0deg);
+            }
+
+            30% {
+                transform: scale(0.5) rotate(180deg);
+            }
+
+            60%, 100% {
+                transform: scale(1) rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <p id="question">Sort an array with <input id="n" value="100"/> elements. (Warning: Don't go over 1000) <button id="gobutton">GO!</button></p>
+        <p id="answer"></p>
+        <div id="loading-spinner" style="display:none">
+            <span class="loading-letter" style="animation-delay:0.0s">L</span>
+            <span class="loading-letter" style="animation-delay:0.1s">O</span>
+            <span class="loading-letter" style="animation-delay:0.2s">A</span>
+            <span class="loading-letter" style="animation-delay:0.3s">D</span>
+            <span class="loading-letter" style="animation-delay:0.4s">I</span>
+            <span class="loading-letter" style="animation-delay:0.5s">N</span>
+            <span class="loading-letter" style="animation-delay:0.6s">G</span>
+        </div>
+    </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+    <script>
+        const gobutton = document.getElementById('gobutton');
+        const input = document.getElementById('n');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const answerElement = document.getElementById('answer');
+
+        let startTime;
+        gobutton.addEventListener('click', async () => {
+            let n = parseInt(input.value);
+            if (!isNaN(n)) {
+                // Show the loading spinner while we look for the prime number
+                loadingSpinner.style.display = 'block';
+                
+
+                let startShuffleTime = Date.now();
+                const shuffledArray = _.shuffle(_.range(n));
+                console.log(`Shuffling array took ${(Date.now() - startShuffleTime)/1000}sec`);
+                console.log('Shuffled array:', shuffledArray);
+
+                let startAllocationTime = Date.now();
+                const arrayToSort = new Uint32Array(new SharedArrayBuffer(n * 4));
+                const workingArray = new Uint32Array(new SharedArrayBuffer(n * 4));
+                arrayToSort.set(shuffledArray,0);
+                workingArray.set(shuffledArray,0);
+
+                const singleThreadArrayToSort = new Uint32Array(shuffledArray);
+                const singleThreadWorkingArray = new Uint32Array(shuffledArray);
+                console.log(`Allocating arrays took ${(Date.now() - startAllocationTime)/1000}sec`);
+
+                let startSortTime = Date.now();
+                topDownSplitMerge(singleThreadWorkingArray, 0, n, singleThreadArrayToSort);
+                let endSortTime = Date.now();
+                console.log(`Single-threaded sort took ${(endSortTime - startSortTime)/1000}sec`);
+                console.log(singleThreadArrayToSort);
+
+                startTime = Date.now();
+                // Here we wait until we need the worker before we create it
+                const sortWorker = new Worker('sort-worker.js');
+                const workersUsed = await new Promise((resolve) => {
+                    sortWorker.onmessage = (event) => {
+                        resolve(event.data);
+                    };
+                    sortWorker.postMessage({ level:0, bufferA: arrayToSort.buffer, bufferB: workingArray.buffer, begin: 0, end: n });
+                });
+                // Once we've got the array back from the worker, we terminate it.
+                sortWorker.terminate();
+                let endTime = Date.now();
+                console.log(`Web worker sort took ${(endTime - startTime)/1000}sec`);
+                console.log('DONE', arrayToSort);
+
+                answerElement.innerText = `Finished! Check the console. Single-threaded sort took ${(endSortTime - startSortTime)/1000}sec. Web Workers took ${(endTime-startTime)/1000}sec using ${workersUsed} workers)`;
+
+                // Hide the loading spinner when we're done
+                loadingSpinner.style.display = 'none';
+                gobutton.removeAttribute('disabled');
+            }
+        });
+
+        function topDownSplitMerge(B, begin, end, A) {
+            if (end - begin < 2) return;
+            let middle = Math.floor((end + begin) / 2);
+            topDownSplitMerge(A, begin, middle, B);
+            topDownSplitMerge(A, middle, end, B);
+            topDownMerge(B, begin, middle, end, A);
+        }
+
+        function topDownMerge(A, begin, middle, end, B) {
+            let i = begin;
+            let j = middle;
+            for (let k = begin; k < end; k++) {
+                if (i < middle && (j >= end || A[i] <= A[j])) {
+                    B[k] = A[i];
+                    i++;
+                } else {
+                    B[k] = A[j];
+                    j++;
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

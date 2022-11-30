@@ -26,8 +26,8 @@ function findNthPrimeNumber(n) {
     return primes.pop();
 }
 
-onmessage = (event) => {
+self.addEventListener('message', (event) => {
     const n = event.data.n;
     const nthPrime = findNthPrimeNumber(n);
-    postMessage({n: n, prime: nthPrime});
-};
+    self.postMessage({n: n, prime: nthPrime});
+});
